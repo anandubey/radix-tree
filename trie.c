@@ -43,11 +43,11 @@ void insert_text(Node *root, const char *text)
 void dump_dot(Node *root)
 {
     size_t index = root - node_pool;
-    printf("    Node_%zu\n", index);
 
     for (size_t i = 0; i < ARRAY_LEN(root->children); ++i) {
         if (root->children[i] != NULL) {
             size_t child_index = root->children[i] - node_pool;
+            printf("    Node_%zu[label=\"%c\"]\n", child_index, (char) i);
             printf("    Node_%zu -> Node_%zu [label=\"%c\"]\n", index, child_index, (char)i);
             dump_dot(root->children[i]);
         }
@@ -61,9 +61,8 @@ int main(void)
     for (size_t i = 0; i < fruits_count; ++i){
         insert_text(root, fruits[i]);
     }
-    //insert_text(root, "hello");
-    //insert_text(root, "helium");
     printf("digraph Trie{\n");
+    printf("Node_%zu [label=root]\n", root - node_pool);
     dump_dot(root);
     printf("}\n");
     return 0;
