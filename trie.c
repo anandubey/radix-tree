@@ -1,10 +1,12 @@
 #include <assert.h>
-#include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "fruits.h"
 
 #define ARRAY_LEN(xs) (sizeof(xs) / sizeof((xs)[0]))
+
 typedef struct Node Node;
 
 struct Node{
@@ -55,16 +57,39 @@ void dump_dot(Node *root)
 
 }
 
-int main(void)
+void usage(FILE *sink)
 {
-    Node *root = alloc_node();
-    for (size_t i = 0; i < fruits_count; ++i){
-        insert_text(root, fruits[i]);
+    fprintf(sink, "USAGE: ./trie <SUBCOMMAND>\n");
+    fprintf(sink, "SUBCOMMANDS:\n");
+    fprintf(sink, "    visualize          Dump the Trie into a Graphviz dot file.\n");
+    fprintf(sink, "    complete <prefix>  Suggest autocompletion for prefix based on the Trie.\n");
+}
+
+int main(int argc, char **argv)
+{
+    if (argc < 2) {
+        usage(stderr);
+        fprintf(stderr, "ERROR: No subcommand is provided\n");
     }
-    printf("digraph Trie{\n");
-    printf("Node_%zu [label=root]\n", root - node_pool);
-    dump_dot(root);
-    printf("}\n");
-    return 0;
+
+    const char *subcommand = argv[1];
+
+    if (strcmp(subcommand, "visualize") == 0) {
+        Node *root = alloc_node();
+        for (size_t i = 0; i < fruits_count; ++i){
+            insert_text(root, fruits[i]);
+        }
+        printf("digraph Trie{\n");
+        printf("Node_%zu [label=root]\n", root - node_pool);
+        dump_dot(root);
+        printf("}\n");
+    } else if (strcmp(subcommand, "complete") == 0) {
+        assert(0 && "TODO: complete not impletemented yet\n");
+    } else {
+        usage(stderr);
+        fprintf(stderr, "ERROR: unknown subcommand `%s`\n", subcommand);
+
+        exit(1);
+    }
 }
 
