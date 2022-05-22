@@ -1,15 +1,14 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "fruits.h"
 
-#define ARRAY_LEN(xs) (sizeof(xs) / sizeof((xs)[0]))
+#define ARRAY_LEN(xs) (sizeof(xs) / sizeof(xs[0]))
 
 typedef struct Node Node;
-
 struct Node{
     bool end;
     Node *children[256];
@@ -25,6 +24,7 @@ Node *alloc_node(void)
     return &node_pool[node_pool_count++];
 }
 
+// Build prefix tree based on the string text
 void insert_text(Node *root, const char *text)
 {
     assert(root != NULL);
@@ -35,7 +35,6 @@ void insert_text(Node *root, const char *text)
         return;
     }
 
-
     size_t index = (size_t) *text;
 
     if (root->children[index] == NULL) {
@@ -45,7 +44,7 @@ void insert_text(Node *root, const char *text)
     insert_text(root->children[index], text + 1);
 }
 
-// dot emphasizes the graphviz
+// Dump prefix tree into representable graph using dot language
 void dump_dot(Node *root)
 {
     size_t index = root - node_pool;
@@ -61,6 +60,7 @@ void dump_dot(Node *root)
 
 }
 
+// Print usage of the program
 void usage(FILE *sink, const char *program)
 {
     fprintf(sink, "USAGE: %s <SUBCOMMAND>\n", program);
@@ -154,5 +154,6 @@ int main(int argc, char **argv)
 
         exit(1);
     }
+    return 0;
 }
 
