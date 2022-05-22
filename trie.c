@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "fruits.h"
 
@@ -10,6 +11,7 @@
 typedef struct Node Node;
 
 struct Node{
+    bool end;
     Node *children[256];
 };
 
@@ -25,12 +27,14 @@ Node *alloc_node(void)
 
 void insert_text(Node *root, const char *text)
 {
+    assert(root != NULL);
+
     if (text == NULL || *text == '\0')
     {
+        root->end = true;
         return;
     }
 
-    assert(root != NULL);
 
     size_t index = (size_t) *text;
 
@@ -57,36 +61,95 @@ void dump_dot(Node *root)
 
 }
 
-void usage(FILE *sink)
+void usage(FILE *sink, const char *program)
 {
-    fprintf(sink, "USAGE: ./trie <SUBCOMMAND>\n");
+    fprintf(sink, "USAGE: %s <SUBCOMMAND>\n", program);
     fprintf(sink, "SUBCOMMANDS:\n");
     fprintf(sink, "    visualize          Dump the Trie into a Graphviz dot file.\n");
     fprintf(sink, "    complete <prefix>  Suggest autocompletion for prefix based on the Trie.\n");
 }
 
+#define AC_BUFFER_CAP 1024
+char ac_buffer[AC_BUFFER_CAP];
+size_t ac_buffer_sz = 0;
+
+void ac_buffer_push(char ch)
+{
+    assert(ac_buffer_sz < AC_BUFFER_CAP);
+    ac_buffer[ac_buffer_sz++] = ch;
+}
+
+void ac_buffer_pop(void)
+{
+    assert(ac_buffer_sz > 0);
+    ac_buffer_sz--;
+}
+
+Node *find_tree_using_prefix(Node *root, const char *prefix) {
+    if (prefix == NULL || *prefix == '\0') {
+        return root;
+    }
+    
+    if (root == NULL) {
+        return NULL;
+    } 
+
+    ac_buffer_push(*prefix);
+    return find_tree_using_prefix(root->children[(size_t) *prefix], prefix +1);
+}
+
+void print_autocompletion(FILE *sink, Node *root)
+{
+   if (root->end){
+        fwrite(ac_buffer, ac_buffer_sz, 1, sink);
+        fputc('\n', sink);
+    }
+
+    for (size_t i = 0; i < ARRAY_LEN(root->children); ++i) {
+        if (root->children[i] != NULL) {
+            ac_buffer_push((char) i);
+            print_autocompletion(sink, root->children[i]);
+            ac_buffer_pop();
+        }
+    }
+}
+
 int main(int argc, char **argv)
 {
-    if (argc < 2) {
-        usage(stderr);
+    const char *program = *argv++;
+
+    if (*argv == NULL) {
+        usage(stderr, program);
         fprintf(stderr, "ERROR: No subcommand is provided\n");
     }
 
-    const char *subcommand = argv[1];
+    const char *subcommand = *argv++;
 
+    Node *root = alloc_node();
+    for (size_t i = 0; i < fruits_count; ++i){
+        insert_text(root, fruits[i]);
+    }
+ 
     if (strcmp(subcommand, "visualize") == 0) {
-        Node *root = alloc_node();
-        for (size_t i = 0; i < fruits_count; ++i){
-            insert_text(root, fruits[i]);
-        }
         printf("digraph Trie{\n");
         printf("Node_%zu [label=root]\n", root - node_pool);
         dump_dot(root);
         printf("}\n");
-    } else if (strcmp(subcommand, "complete") == 0) {
-        assert(0 && "TODO: complete not impletemented yet\n");
-    } else {
-        usage(stderr);
+    }
+
+    else if (strcmp(subcommand, "complete") == 0) {
+        if (*argv == NULL) {
+            usage(stderr, program);
+            fprintf(stderr, "ERROR: No prefix is provided\n");
+            exit(1);
+        }
+        const char *prefix = *argv++;
+        Node *subtree = find_tree_using_prefix(root, prefix);
+        print_autocompletion(stdout, subtree);
+    }
+
+    else {
+        usage(stderr, program);
         fprintf(stderr, "ERROR: unknown subcommand `%s`\n", subcommand);
 
         exit(1);
